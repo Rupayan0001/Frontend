@@ -1,0 +1,57 @@
+.mainPost {
+    box-shadow: 1px 1px 5px 2px rgba(175, 175, 175, 0.395);
+    color: rgb(17, 17, 17);
+    padding: 15px;
+    box-sizing: border-box;
+    position: relative;
+    background-color: #ffffff;
+    /* z-index: 1; */
+    /* border: 5px solid red; */
+}
+
+.basicProfile {
+    box-shadow: 1px 1px 5px 5px rgb(159, 159, 159);
+    overflow: visible;
+    animation: slowEntry 0.3s 1 forwards ease-in-out;
+}
+.giveShadowToPostEdit{
+    box-shadow: 1px 1px 5px 3px rgba(98, 98, 98, 0.679);
+}
+
+@keyframes slowEntry {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.editPost {
+    z-index: 1;
+}
+
+.postEdit {
+    position: absolute;
+    top: 12px;
+    right: 20px;
+    /* cursor: pointer; */
+
+    /* transition: 0.2s; */
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* color: black; */
+}
+
+/* .postEdit:hover {
+    background-color: #79797940;
+    color: #2d03ff;
+} */
+.postTextSection {
+    max-width: 100%;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
