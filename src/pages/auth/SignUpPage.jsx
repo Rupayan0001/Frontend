@@ -1,156 +1,217 @@
-import React, { useRef, useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import Input from '../../components/layout/Input'
-import './../../styles/SignUpPage.css'
-import { Link } from 'react-router-dom'
-import { axiosInstance } from '../../lib/axios'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import React, { useRef, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Input from "../../components/layout/Input";
+import "./../../styles/SignUpPage.css";
+import { Link } from "react-router-dom";
+import { axiosInstance } from "../../lib/axios";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import globalState from "../../lib/globalState";
+import Notify from "../../components/layout/Notify";
+import { errorMessages } from "../../lib/Errors";
 
 const SignUpPage = () => {
-    const [nameError, setNameError] = useState("");
-    const [mobileError, setMobileError] = useState("");
-    const [passwordError, setPasswordError] = useState("");
-    const [usernameError, setUsernameError] = useState("");
-    const [emailError, setEmailError] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [type, setType] = useState("password");
-    const [disabled, setDisabled] = useState(true);
-    const navigate = useNavigate();
-    const name = useRef();
-    const username = useRef();
-    const mobile = useRef();
-    const email = useRef();
-    const password = useRef();
+  const [nameError, setNameError] = useState("");
+  const [mobileError, setMobileError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [type, setType] = useState("password");
+  const [disabled, setDisabled] = useState(true);
+  const [width, setWidth] = useState(window.innerWidth);
+  const notify = globalState((state) => state.notify);
+  const setNotify = globalState((state) => state.setNotify);
+  const [namevalue, setNameValue] = useState("");
+  const [usernamevalue, setUsernameValue] = useState("");
+  const [mobilevalue, setMobileValue] = useState("");
+  const [emailvalue, setEmailValue] = useState("");
+  const [passwordvalue, setPasswordValue] = useState("");
 
+  const navigate = useNavigate();
+  const notifyTimer = useRef();
 
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === "Enter") {
-                signUp();
-            }
-        }
-        document.addEventListener("keydown", handleKeyDown);
-        return () => {
-            document.removeEventListener("keydown", handleKeyDown);
-        }
-    }, []);
-
-
-
-    function handleChange() {
-        if (
-            name.current.value.trim() !== "" &&
-            username.current.value.trim() !== "" &&
-            mobile.current.value.trim() !== "" &&
-            email.current.value.trim() !== "" &&
-            password.current.value.trim() !== ""
-        ) {
-            // console.log("Fired!!!");
-            setDisabled(false);
-
-        }
-
-        else {
-            // console.log("False")
-            setDisabled(true);
-            return;
-        }
+  useEffect(() => {
+    function resize() {
+      setWidth(window.innerWidth);
     }
-    async function signUp() {
+    window.addEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
 
-        setNameError("");
-        setMobileError("");
-        setPasswordError("");
-        setUsernameError("");
-        setEmailError("");
+  useEffect(() => {
+    const isFormValid = namevalue.trim() && usernamevalue.trim() && mobilevalue.trim() && emailvalue.trim() && passwordvalue.trim();
+    setDisabled(!isFormValid);
+    const handleKeyDown = (e) => {
+      if (e.key === "Enter") {
+        signUp();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [namevalue, usernamevalue, mobilevalue, emailvalue, passwordvalue]);
 
-        if (!name.current.value.trim().includes(" ")) {
-            setNameError("Please enter your full name")
-        }
-        if (mobile.current.value.trim().length < 10) {
-            setMobileError("Please enter a valid mobile number")
-        }
-        if (username.current.value.trim() === "") {
-            setUsernameError("Please enter a valid username")
-        }
-        if (email.current.value.trim() === "") {
-            setEmailError("Please enter a valid email address")
-        }
-        if (password.current.value.trim() === "") {
-            setPasswordError("Please enter a valid password")
-            return;
-        }
+  async function signUp() {
+    if (notifyTimer.current) {
+      clearTimeout(notifyTimer.current);
+      setNotify(null);
+    }
+    if (disabled) {
+      setNotify("All fields are required");
+      notifyTimer.current = setTimeout(() => {
+        setNotify(null);
+      }, 5 * 1000);
+      return;
+    }
+    setNameError("");
+    setMobileError("");
+    setPasswordError("");
+    setUsernameError("");
+    setEmailError("");
 
-
-
-
-        try {
-            setLoading(true);
-            const response = await axiosInstance.post("/auth/signup", {
-                name: name.current.value,
-                username: username.current.value,
-                mobile: mobile.current.value,
-                email: email.current.value,
-                password: password.current.value
-            })
-            if (response.data.message === "Verification email sent successfully") {
-                console.log("user", response.data.user);
-                localStorage.setItem("user", JSON.stringify({ id: response.data.user._id, name: response.data.user.name, email: response.data.user.email }))
-                navigate("/verifyEmail");
-            }
-
-        }
-        catch (error) {
-            console.log(error.response.data.message)
-            if (error.response.data.message === 'Password must contain atleast one special character, one number, one lowercase character, one uppercase character and has to be atleast 8 characters long') {
-                setPasswordError("Password must contain atleast one special character, one number, one lowercase character, one uppercase character and has to be atleast 8 characters long")
-            };
-            if (error.response.data.message === "Invalid email address") {
-                setEmailError("Invalid email address");
-            }
-            if (error.response.data.message === "User already exists") {
-                setEmailError("User already exists, please login");
-            }
-            if (error.response.data.message === "Please enter a valid mobile number") {
-                setMobileError("Please enter a valid mobile number");
-            }
-            if (error.response.data.message === "Username not available, use different username") {
-                setUsernameError("Username not available, use different username");
-            }
-
-        }
-        finally{
-            setLoading(false);
-        }
+    if (!/\s/.test(namevalue)) {
+      setNameError("Please enter your full name");
+    }
+    if (namevalue.length > 30) {
+      setNameError("Please keep your name under 30 characters");
+    }
+    if (usernamevalue.trim() === "") {
+      setUsernameError("Please enter a valid username");
+    }
+    if (!/^\d{10}$/.test(mobilevalue)) {
+      setMobileError("Please enter a valid 10-digit mobile number");
+    }
+    if (!/^\S+@\S+\.\S+$/.test(emailvalue)) {
+      setEmailError("Invalid email address");
+    }
+    if (passwordvalue.length < 8) {
+      setPasswordError("Password must be at least 8 characters long");
+      return;
     }
 
+    try {
+      setLoading(true);
+      const response = await axiosInstance.post("/auth/signup", {
+        name: namevalue,
+        username: usernamevalue,
+        mobile: mobilevalue,
+        email: emailvalue,
+        password: passwordvalue,
+      });
+      if (response.data.message === "OTP sent successfully") {
+        localStorage.setItem("user", JSON.stringify({ id: response.data.user._id, name: response.data.user.name, email: response.data.user.email }));
+        navigate("/verifyEmail");
+      }
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        setNotify(error.response.data.message);
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+      }
 
-    return (
-        <div className='w-full min-h-screen bg-white flex justify-center font-roboto'>
-            <div className='w-[400px] mb-5 bg-white px-8 py-10 mt-5 outside rounded-md'>
-                <div className='border-0'>
-                    <h1 className='logoHead text-5xl font-bold text-center text-[#6A0DAD]'>Unlinked</h1>
-                    <p className='text-md mt-[10px] text-center'>Connect with the world</p>
-                    <p className='text-sm text-[#4c4b4b] text-center mt-5 create'>Create a new account</p>
-                    <h3 className='text-sm text-center text-[#4c4b4b] mb-[10px] mt-2'>It's super easy!</h3>
-                    <Input placeholder="Enter your name" maxLength={100} ref={name} onChange={handleChange} inputError={nameError} />
-                    <Input placeholder="Enter your username" maxLength={100} ref={username} onChange={handleChange} inputError={usernameError} />
-                    <Input placeholder="Enter your mobile no" maxLength={13} ref={mobile} onChange={handleChange} inputError={mobileError} />
-                    <Input placeholder="Enter your email" maxLength={100} ref={email} onChange={handleChange} inputError={emailError} />
-                    <div className='relative'>
-                        <Input placeholder="Enter your password" maxLength={100} ref={password} onChange={handleChange} type={type} inputError={passwordError} />
-                        {type === "password" ? (<FontAwesomeIcon icon={faEye} onClick={() => setType("text")} className='eyeIcon cursor-pointer' />) : (<FontAwesomeIcon onClick={() => setType("password")} icon={faEyeSlash} className='eyeIcon cursor-pointer' />)}
+      if (error.response.data.message === errorMessages.signUp.password) {
+        setPasswordError(errorMessages.signUp.password);
+      }
+      if (error.response.data.message === "Invalid email address") {
+        setEmailError("Invalid email address");
+      }
+      if (error.response.data.message === "User already exists") {
+        setEmailError("User already exists, please login");
+      }
+      if (error.response.data.message === errorMessages.signUp.mobile) {
+        setMobileError(errorMessages.signUp.mobile);
+      }
+      if (error.response.data.message === errorMessages.signUp.username) {
+        setUsernameError(errorMessages.signUp.username);
+      }
+      if (error.response.data.message === errorMessages.signUp.name) {
+        setNameError(errorMessages.signUp.name);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
-                    </div>
-                    <p className='text-md mt-[20px]'>By signing up, you agree to our <a className='links' href="#">Terms,</a> <a className='links' href="#">Privacy Policy</a>  and <a className='links' href="#">Cookies Policy</a>  .</p>
-                    <button className={`${disabled ? "bg-[#3DAAE3] cursor-not-allowed " : "bg-[#0077B5]"} flex justify-center items-center text-white w-full p-2 rounded-lg mt-[20px]`} disabled={disabled} onClick={signUp}>{loading ? <p className='spinOnButton h-[25px] w-[25px]'></p> : "Sign Up"}</button>
-                    <Link to="/login"><p className='mt-[20px] cursor-pointer text-blue-600 text-center'>Already have an account?</p></Link>
-                    {/* <p className='mt-[20px] cursor-pointer text-blue-600 text-center'>Already have an account?</p> */}
-                </div>
-            </div>
+  return (
+    <div className="w-full inter relative h-[100vh] bg-white flex justify-center items-center">
+      {notify && width > 450 && <Notify page="Home" width={width} notify={notify} />}
+      {notify && width <= 450 && (
+        <div className="absolute w-[100%] bottom-10 flex justify-center">
+          <Notify page="Home" width={width} notify={notify} />
         </div>
-    )
-}
+      )}
+      <h1
+        onClick={() => window.location.reload()}
+        className="logoHead cursor-pointer absolute top-1 left-2 text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-800 via-blue-700 to-blue-600"
+      >
+        Renokon
+      </h1>
+      <div className={`${width > 768 ? "w-[400px] pb-14 outside px-5" : "w-full px-2 pb-6"} bg-white  rounded-md`}>
+        <div className="">
+          <div
+            className={`logoHead inter ${
+              width > 768 ? "mt-[60px] mb-[40px] text-3xl" : "mb-[25px] text-3xl"
+            } font-bold text-center text-transparent bg-clip-text  bg-gradient-to-r from-blue-800 via-blue-700 to-blue-600 `}
+          >
+            Sign Up
+          </div>
+          {/* <h3 className='text-sm text-center text-[#4c4b4b] mb-[10px] mt-2'>It's super easy!</h3> */}
+          <Input placeholder="Enter your name" maxLength={100} value={namevalue} onChange={(e) => setNameValue(e.target.value)} inputError={nameError} />
+          <Input placeholder="Enter your username" maxLength={100} value={usernamevalue} onChange={(e) => setUsernameValue(e.target.value)} inputError={usernameError} />
+          <Input
+            placeholder="Enter your mobile no"
+            maxLength={13}
+            paddingRight="10px"
+            value={mobilevalue}
+            type="number"
+            onChange={(e) => setMobileValue(e.target.value)}
+            inputError={mobileError}
+          />
+          <Input placeholder="Enter your email" maxLength={100} value={emailvalue} onChange={(e) => setEmailValue(e.target.value)} inputError={emailError} />
+          <div className="relative">
+            <Input
+              placeholder="Enter your password"
+              maxLength={100}
+              value={passwordvalue}
+              onChange={(e) => setPasswordValue(e.target.value)}
+              type={type}
+              inputError={passwordError}
+            />
+            {type === "password" ? (
+              <FontAwesomeIcon icon={faEye} onClick={() => setType("text")} className="eyeIcon cursor-pointer" />
+            ) : (
+              <FontAwesomeIcon onClick={() => setType("password")} icon={faEyeSlash} className="eyeIcon cursor-pointer" />
+            )}
+          </div>
+          <p className="text-md mt-[20px]">
+            By signing up, you agree to our <Link to="/policies">Terms, </Link>
+            <Link to="/policies">Privacy Policy </Link>
+            and
+            <Link to="/policies"> Cookies Policy</Link> .
+          </p>
+          <button
+            className={`${
+              disabled ? "bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500" : "bg-gradient-to-r from-blue-800 via-blue-700 to-blue-600"
+            } flex justify-center items-center text-white w-full p-2 rounded-lg mt-[20px]`}
+            // disabled={disabled}
+            onClick={signUp}
+          >
+            {loading ? <p className="spinButton h-[24px] w-[24px]"></p> : "Sign Up"}
+          </button>
+          <Link to="/login">
+            <p className="mt-[20px] hover:opacity-80 cursor-pointer text-transparent bg-clip-text bg-gradient-to-r from-blue-800 via-blue-700 to-blue-600 text-center">
+              Already have an account?
+            </p>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default SignUpPage;

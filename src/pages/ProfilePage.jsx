@@ -1,589 +1,952 @@
-import React, { useState, useEffect, useRef } from 'react'
-import Topbar from '../components/layout/Topbar'
-import LeftBarComponent from '../components/layout/LeftBarComponent'
-import Post from '../components/layout/Post';
-import './../styles/ProfilePage.css'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { axiosInstance } from '../lib/axios';
-import userProfilePicStore from '../lib/userProfilePicStore.js';
-import SearchBox from '../components/layout/SearchBox.jsx';
+import React, { useState, useEffect, useRef } from "react";
+import Topbar from "../components/layout/Topbar";
+import LeftBarComponent from "../components/layout/LeftBarComponent";
+import Post from "../components/layout/Post";
+import "./../styles/ProfilePage.css";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { axiosInstance } from "../lib/axios";
+import globalState from "../lib/globalState.js";
+import SearchBox from "../components/layout/SearchBox.jsx";
+import post_uploaded from "../../src/assets/notification_sound/post_uploaded.mp3";
 import {
-    faMagnifyingGlass, faCreditCard, faSquarePlus, faCirclePlay, faGear, faUserGroup, faHouse,
-    faLandmark, faBriefcase, faMessage, faStore, faGamepad, faVideo, faBars, faBell, faCopy, faEnvelope,
-    faRightFromBracket, faUser,
-    faBookmark,
-    faBan,
-    faUserSlash,
-} from '@fortawesome/free-solid-svg-icons';
-import { faFacebook, faTwitter, faWhatsapp, faLinkedin, faInstagram } from '@fortawesome/free-brands-svg-icons';
-import BannerImg, { ProfileImg } from '../components/layout/BannerImg';
-import PostBox from '../components/layout/PostBox.jsx';
-import postTimeLogic from '../lib/Post_Time_Logic.js';
-import CommentBox from '../components/layout/commentBox.jsx';
-import newPostStore from '../lib/NewPost.js';
-import About from '../components/layout/About.jsx';
-import Photos from '../components/layout/Photos.jsx';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleUser } from '@fortawesome/free-regular-svg-icons';
-import FollowersList from '../components/layout/FollowersList.jsx';
-import FriendsList from '../components/layout/FriendsList.jsx';
-import ReportBox from '../components/layout/ReportBox.jsx';
-import TopbarRightDropdown from '../components/layout/TopbarRightDropdown.jsx';
-import BlockList from '../components/layout/BlockList.jsx';
-import Logout from '../components/layout/Logout.jsx';
-import ShareModal from '../components/layout/ShareModal.jsx';
-import Leftbar from '../components/layout/LeftBar.jsx';
+  faMagnifyingGlass,
+  faCreditCard,
+  faSquarePlus,
+  faCirclePlay,
+  faGear,
+  faUserGroup,
+  faHouse,
+  faLandmark,
+  faBriefcase,
+  faMessage,
+  faStore,
+  faGamepad,
+  faVideo,
+  faBars,
+  faBell,
+  faCopy,
+  faEnvelope,
+  faRightFromBracket,
+  faUser,
+  faXmark,
+  faBookmark,
+  faArrowLeft,
+  faBan,
+  faUserSlash,
+} from "@fortawesome/free-solid-svg-icons";
+import { faFacebook, faTwitter, faWhatsapp, faLinkedin, faInstagram } from "@fortawesome/free-brands-svg-icons";
+import BannerImg, { ProfileImg } from "../components/layout/BannerImg";
+import PostBox from "../components/layout/PostBox.jsx";
+import postTimeLogic from "../lib/Post_Time_Logic.js";
+import CommentBox from "../components/layout/commentBox.jsx";
+import About from "../components/layout/About.jsx";
+import Photos from "../components/layout/Photos.jsx";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleUser } from "@fortawesome/free-regular-svg-icons";
+import FollowersList from "../components/layout/FollowersList.jsx";
+import FriendsList from "../components/layout/FriendsList.jsx";
+import ReportBox from "../components/layout/ReportBox.jsx";
+import TopbarRightDropdown from "../components/layout/TopbarRightDropdown.jsx";
+import { AnimatePresence, motion } from "framer-motion";
+import BlockList from "../components/layout/BlockList.jsx";
+import Logout from "../components/layout/Logout.jsx";
+import ShareModal from "../components/layout/ShareModal.jsx";
+import Leftbar from "../components/layout/LeftBar.jsx";
+import Confirmation from "../components/layout/Confirmation.jsx";
+import HideUser from "../components/layout/HideUser.jsx";
+import Notify from "../components/layout/Notify.jsx";
+import WritePost from "../components/layout/WritePost.jsx";
+import PostSkeleton from "../components/layout/PostSkeleton.jsx";
+import delete_notification from "../assets/notification_sound/delete_notification.wav";
+import VideoProfilePage from "../components/layout/VideoProfilePage.jsx";
+import VideoPlayer from "../components/layout/VideoPlayer.jsx";
+import Carousel from "../components/layout/Carousel.jsx";
+import Notification from "../components/layout/Notification.jsx";
 const ProfilePage = () => {
-    const [loading, setLoading] = useState(true);
-    const [loadingPosts, setLoadingPosts] = useState(true);
-    const user = userProfilePicStore((state) => state.user);
-    const setUser = userProfilePicStore((state) => state.setUser);
-    const profilePic = userProfilePicStore((state) => state.profilePic);
-    const selectedTab = userProfilePicStore((state) => state.selected);
-    const setSelectedTab = userProfilePicStore((state) => state.setSelected);
-    const shareOptions = userProfilePicStore((state) => state.shareOptions);
-    const setShareOptions = userProfilePicStore((state) => state.setShareOptions);
-    const confirmDelete = userProfilePicStore((state) => state.confirmDelete);
-    const setConfirmDelete = userProfilePicStore((state) => state.setConfirmDelete);
-    const deletePostObj = userProfilePicStore((state) => state.deletePostObj);
-    const commentDetails = userProfilePicStore((state) => state.commentDetails);
-    const setDeletePostObj = userProfilePicStore((state) => state.setDeletePostObj);
-    const [page, setPage] = useState(1);
-    const [noPost, setNoPost] = useState("");
-    const [hasMore, setHasMore] = useState(true);
-    // const [showLoading, setShowLoading] = useState(false);
-    const [numOfComment, setNumOfComment] = useState("");
-    // const [post, setNewPost] = useState([]);
-    // setPosts 
-    const post = newPostStore((state) => state.post);
-    const setNewPost = newPostStore((state) => state.setNewPost);
-    // const post = newPostStore((state) => state.post);
-    // const setPosts = newPostStore((state) => state.setNewPost);
-    const openPost = userProfilePicStore((state) => state.openPost);
-    const setOpenPost = userProfilePicStore((state) => state.setOpenPost);
-    const setPostDetailsObj = userProfilePicStore((state) => state.setPostDetailsObj);
-    const openProfileDropdown = userProfilePicStore((state) => state.openProfileDropdown);
-    const setOpenProfileDropdown = userProfilePicStore((state) => state.setOpenProfileDropdown);
-    const topBarRightProfilePicRefState = userProfilePicStore((state) => state.topBarRightProfilePicRefState);
-    const tabSelectedForFollow = userProfilePicStore((state) => state.tabSelectedForFollow);
-    const setTabSelectedForFollow = userProfilePicStore((state) => state.setTabSelectedForFollow);
-    const loggedInUser = userProfilePicStore((state) => state.loggedInUser);
-    const setLoggedInUser = userProfilePicStore((state) => state.setLoggedInUser);
-    const pageName = userProfilePicStore((state) => state.pageName);
-    const setPageName = userProfilePicStore((state) => state.setPageName);
-    const notify = userProfilePicStore((state) => state.notify);
-    const setNotify = userProfilePicStore((state) => state.setNotify);
-    const openSearch = userProfilePicStore((state) => state.openSearch);
-    const setOpenSearch = userProfilePicStore((state) => state.setOpenSearch);
-    const removePost = userProfilePicStore((state) => state.removePost);
-    const setRemovePost = userProfilePicStore((state) => state.setRemovePost);
-    const setCloseModal = userProfilePicStore((state) => state.setCloseModal);
-    const closeModal = userProfilePicStore((state) => state.closeModal);
-    const likedData = userProfilePicStore((state) => state.likedData);
-    const setLikedData = userProfilePicStore((state) => state.setLikedData);
-    const showFriends = userProfilePicStore((state) => state.showFriends);
-    const setShowFriends = userProfilePicStore((state) => state.setShowFriends);
-    const setFriendsList = userProfilePicStore((state) => state.setFriendsList);
-    const openBlockList = userProfilePicStore((state) => state.openBlockList);
-    const setOpenBlockList = userProfilePicStore((state) => state.setOpenBlockList);
-    const friendsList = userProfilePicStore((state) => state.friendsList);
-    const report = userProfilePicStore((state) => state.report);
-    const setReport = userProfilePicStore((state) => state.setReport);
-    const blockedUserPosts = userProfilePicStore((state) => state.blockedUserPosts);
-    const [innerHeight, setInnerHeight] = useState(window.innerHeight);
-    const block = userProfilePicStore((state) => state.block);
-    const setBlock = userProfilePicStore((state) => state.setBlock);
-    const logOut = userProfilePicStore((state) => state.logOut);
-    const savePost = userProfilePicStore((state) => state.savePost);
-    const setSavePost = userProfilePicStore((state) => state.setSavePost);
-    const savePostList = userProfilePicStore((state) => state.savePostList);
-    const setSavePostList = userProfilePicStore((state) => state.setSavePostList);
-    // const setSelected = newPostStore((state) => state.setSelected);
-    // const [savePostList, setSavePostList] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const user = globalState((state) => state.user);
+  const setUser = globalState((state) => state.setUser);
+  const profilePic = globalState((state) => state.profilePic);
+  const selected = globalState((state) => state.selected);
+  const setSelected = globalState((state) => state.setSelected);
+  const shareOptions = globalState((state) => state.shareOptions);
+  const setShareOptions = globalState((state) => state.setShareOptions);
+  const confirmDelete = globalState((state) => state.confirmDelete);
+  const setConfirmDelete = globalState((state) => state.setConfirmDelete);
+  const deletePostObj = globalState((state) => state.deletePostObj);
+  const commentDetails = globalState((state) => state.commentDetails);
+  const setCommentDetails = globalState((state) => state.setCommentDetails);
+  const setDeletePostObj = globalState((state) => state.setDeletePostObj);
+  const setConfirmRemoveFriend = globalState((state) => state.setConfirmRemoveFriend);
+  const setOnlineFriends = globalState((state) => state.setOnlineFriends);
+  const [page, setPage] = useState(1);
+  const [noPost, setNoPost] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [numOfComment, setNumOfComment] = useState("");
+  const post = globalState((state) => state.post);
+  const setNewPost = globalState((state) => state.setNewPost);
+  const openPost = globalState((state) => state.openPost);
+  const setProfileBlock = globalState((state) => state.setProfileBlock);
+  const profileBlock = globalState((state) => state.profileBlock);
+  const setOpenPost = globalState((state) => state.setOpenPost);
+  const setPostDetailsObj = globalState((state) => state.setPostDetailsObj);
+  const openProfileDropdown = globalState((state) => state.openProfileDropdown);
+  const setOpenProfileDropdown = globalState((state) => state.setOpenProfileDropdown);
+  const topBarRightProfilePicRefState = globalState((state) => state.topBarRightProfilePicRefState);
+  const tabSelectedForFollow = globalState((state) => state.tabSelectedForFollow);
+  const setTabSelectedForFollow = globalState((state) => state.setTabSelectedForFollow);
+  const setIsLoggedOut = globalState((state) => state.setIsLoggedOut);
+  const loggedInUser = globalState((state) => state.loggedInUser);
+  const setLoggedInUser = globalState((state) => state.setLoggedInUser);
+  const pageName = globalState((state) => state.pageName);
+  const setPageName = globalState((state) => state.setPageName);
+  const notify = globalState((state) => state.notify);
+  const setNotify = globalState((state) => state.setNotify);
+  const openSearch = globalState((state) => state.openSearch);
+  const setOpenSearch = globalState((state) => state.setOpenSearch);
+  const removePost = globalState((state) => state.removePost);
+  const setRemovePost = globalState((state) => state.setRemovePost);
+  const setCloseModal = globalState((state) => state.setCloseModal);
+  // const openPost = globalState((state) => state.openPost);
+  // const setOpenPost = globalState((state) => state.setOpenPost);
+  const setOpenPoll = globalState((state) => state.setOpenPoll);
+  const closeModal = globalState((state) => state.closeModal);
+  const likedData = globalState((state) => state.likedData);
+  const setLikedData = globalState((state) => state.setLikedData);
+  const showFriends = globalState((state) => state.showFriends);
+  const setShowFriends = globalState((state) => state.setShowFriends);
+  const openHideUserList = globalState((state) => state.openHideUserList);
+  const setOpenHideUserList = globalState((state) => state.setOpenHideUserList);
+  const setBlockedUserPosts = globalState((state) => state.setBlockedUserPosts);
+  const setFriendsList = globalState((state) => state.setFriendsList);
+  const openBlockList = globalState((state) => state.openBlockList);
+  const setOpenBlockList = globalState((state) => state.setOpenBlockList);
+  const friendsList = globalState((state) => state.friendsList);
+  const report = globalState((state) => state.report);
+  const setReport = globalState((state) => state.setReport);
+  const blockedUserPosts = globalState((state) => state.blockedUserPosts);
+  const [innerHeight, setInnerHeight] = useState(window.innerHeight);
+  const block = globalState((state) => state.block);
+  const setBlock = globalState((state) => state.setBlock);
+  const logOut = globalState((state) => state.logOut);
+  const savePost = globalState((state) => state.savePost);
+  const setSavePost = globalState((state) => state.setSavePost);
+  const savePostList = globalState((state) => state.savePostList);
+  const setSavePostList = globalState((state) => state.setSavePostList);
+  const setShowProfilePicFull = globalState((state) => state.setShowProfilePicFull);
+  const showProfilePicFull = globalState((state) => state.showProfilePicFull);
+  const increaseTotalUnreadMessages = globalState((state) => state.increaseTotalUnreadMessages);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const showBannerPicFull = globalState((state) => state.showBannerPicFull);
+  const setShowBannerPicFull = globalState((state) => state.setShowBannerPicFull);
+  const confirmRemoveFriend = globalState((state) => state.confirmRemoveFriend);
+  const socketHolder = globalState((state) => state.socketHolder);
+  const connectSocket = globalState((state) => state.connectSocket);
+  const fetchTotalUnreadMessages = globalState((state) => state.fetchTotalUnreadMessages);
+  const totalUnreadMessages = globalState((state) => state.totalUnreadMessages);
+  const setTotalUnreadMessages = globalState((state) => state.setTotalUnreadMessages);
+  const setLogOut = globalState((state) => state.setLogOut);
+  const setClickedLogOut = globalState((state) => state.setClickedLogOut);
+  const clickedLogOut = globalState((state) => state.clickedLogOut);
+  const hideAllPostUser = globalState((state) => state.hideAllPostUser);
+  const setHideAllPostUser = globalState((state) => state.setHideAllPostUser);
+  const setWSFriendRequest = globalState((state) => state.setWSFriendRequest);
+  const onlineUsers = globalState((state) => state.onlineUsers);
+  const setOnlineUsers = globalState((state) => state.setOnlineUsers);
+  const changeWidth = globalState((state) => state.changeWidth);
+  const expandImageForPost = globalState((state) => state.expandImageForPost);
+  const setExpandImageForPost = globalState((state) => state.setExpandImageForPost);
+  const notifyClicked = globalState((state) => state.notifyClicked);
+  const setNotifyClicked = globalState((state) => state.setNotifyClicked);
+  const addNotification = globalState((state) => state.addNotification);
 
-    // const [banner, setBanner] = useState(defaultBannerPic);
-    const postBoxRef = useRef();
-    const shareOptionsRef = useRef();
-    const postScroll = useRef();
-    const confirmDeleteRef = useRef();
-    const notifyTimer = useRef();
-    const profileDropdownRef = useRef();
-    const { userId } = useParams();
-    const navigate = useNavigate();
-    const leftBarSearchRef = useRef();
-    const postsArrayRef = useRef();
-    const followListsRef = useRef();
-    const friendListsRef = useRef();
-    const reportRef = useRef();
-    const blockListsRef = useRef();
-    // let id = JSON.parse(localStorage.getItem("user"));
-    // console.log(post)
+  const postBoxRef = useRef();
+  const shareOptionsRef = useRef();
+  const postScroll = useRef();
+  const confirmDeleteRef = useRef();
+  const notifyTimer = useRef();
+  const profileDropdownRef = useRef();
+  const { userId } = useParams();
+  const navigate = useNavigate();
+  const leftBarSearchRef = useRef();
+  const postsArrayRef = useRef();
+  const followListsRef = useRef();
+  const friendListsRef = useRef();
+  const reportRef = useRef();
+  const blockListsRef = useRef();
+  const showProfilePicFullRef = useRef();
+  const showBannerPicFullRef = useRef();
+  const hideUserRef = useRef();
+  const postUploadedSoundRef = useRef();
+  const deleteSoundRef = useRef();
+  const expandImageForPostRef = useRef();
 
-    const response = async () => {
-        try {
-            setOpenSearch(false)
-
-            const response = await axiosInstance.get(`/user/userProfile/${userId}`);
-            setUser(response.data.user);
-            console.log(loggedInUser)
-            console.log("response.data.friendRequestStatus.............: ", response.data)
-            setLoading(false);
-            fetchPosts(page);
-        } catch (error) {
-            if (!loggedInUser) {
-                navigate("/home");
-            }
-            if (!response.data.user) {
-                navigate("/login");
-
-            }
-            console.log("error in reponse ", error)
-        }
+  const response = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get(`/user/userProfile/${userId}`);
+      setUser(response.data.user);
+      setLoading(false);
+      setBlock(response.data.isBlocked);
+    } catch (error) {
+      if (!loggedInUser) {
+        navigate("/home");
+      }
+      if (!response.data.user) {
+        navigate("/login");
+      }
     }
-
-
-    const fetchPosts = async (page) => {
-        console.log("fetching.........")
-        setLoadingPosts(true);
-
-        // setPosts([]);
-        try {
-            // console.log("fetching...")
-            // setLoadingPosts(true);
-            // console.log("UserId: ", userId)
-            // console.log("Post: ", postsArrayRef.current)
-            const responseForPosts = await axiosInstance.get(`/post/${userId}/getCurrentUserPost`, {
-                params: { page: page, limit: 50 }
-            });
-            // console.log("response: ", responseForPosts.data.posts)
-            if (page === 1 && responseForPosts.data.posts.length === 0) {
-                setNoPost("Create a post.")
-            }
-
-            if (responseForPosts.data.posts && responseForPosts.data.posts.length > 0) {
-                // console.log(responseForPosts.data.posts)
-                // console.log("Posts : ", responseForPosts.data.posts)
-                // console.log("oldPosts : ", post)
-                // setHasMore(responseForPosts.data.postsCount > (50 * page));
-                if(responseForPosts.data.posts.length === 0) {
-                    setHasMore(false);
-                }
-                setLikedData(responseForPosts.data.likedData);
-                setNewPost([...postsArrayRef.current, ...responseForPosts.data.posts])
-                if (page >= 1 && !hasMore) {
-                    setNoPost("No more posts.")
-                }
-                // setNewPost((prevPosts) => {
-                //     // console.log("OldPosts: ", prevPosts)
-                //     const newArr = [...prevPosts, ...responseForPosts.data.posts]
-                //     const allIds = newArr.map((e) => {
-                //         return e._id;
-                //     })
-                //     const unique = [...new Set(allIds)]
-                //     const uniquePosts = [];
-                //     unique.forEach((e) => {
-                //         uniquePosts.push(newArr.find(obj => obj._id === e))
-                //     })
-                //     console.log("uniquePosts", uniquePosts)
-                //     return uniquePosts
-                // })
-
-                setLoadingPosts(false);
-                // setShowLoading(false);
-
-                // console.log("fetchPosts fineshed first")
-            }
-
-            else {
-                console.log("No posts")
-                setHasMore(false);
-                setLoadingPosts(false);
-            }
-
-        } catch (error) {
-            console.log(error)
-        }
+  };
+  useEffect(() => {
+    if (notify === "Post uploaded successfully" || notify === "Post updated successfully") {
+      if (postUploadedSoundRef.current) {
+        postUploadedSoundRef.current.play();
+      }
     }
+  }, [notify]);
 
-
-    // console.log("window.innerheight: ", window.innerHeight)
-    // getting logged in user details 
-    useEffect(() => {
-        async function getLoggedInUser() {
-            const response = await axiosInstance.get(`/user/getLoggedInuser`);
-            console.log("response.data loggedInUser: ", response.data)
-            setLoggedInUser(response.data.user)
+  const fetchPosts = async (page) => {
+    setLoadingPosts(true);
+    postsArrayRef.current = post;
+    try {
+      const responseForPosts = await axiosInstance.get(`/post/${userId}/getCurrentUserPost`, {
+        params: { page: page, limit: 50 },
+      });
+      if (responseForPosts.data.posts && responseForPosts.data.posts.length === 0 && page === 1) {
+        setHasMore(false);
+        setLoadingPosts(false);
+        if (page === 1 && loggedInUser._id === user._id) {
+          setNoPost("Create a post.");
         }
-        getLoggedInUser()
-    }, [])
-    useEffect(() => {
-        // setSelectedTab("")
-        const handleResize = () => {
-            console.log(innerHeight)
-            setInnerHeight(window.innerHeight);
+        if (page === 1 && loggedInUser._id !== user._id) {
+          setNoPost(`${user.name.split(" ")[0]} has not created any posts yet.`);
         }
-        document.addEventListener("resize", handleResize);
-        return () => document.removeEventListener("resize", handleResize);
-    }, [])
-    useEffect(() => {
-        // console.log("Fired", post)
-        setPageName("Profile")
-        setNewPost([]);
-        // setNewPost([]);
-        postsArrayRef.current = [];
-        console.log("postArrayRef.current: ", postsArrayRef.current)
-        response();
-        return () => {
-            setPageName("")
-            setUser(null);
-            setSelectedTab("Posts")
-            setTabSelectedForFollow(null);
-            setShowFriends(null);
-            setOpenBlockList(false);
-            setBlock(false)
-            setSavePost(false);
-            // postsArrayRef.current = [];
-            console.log("unmounter user id changed")
-        }
-
-    }, [userId]);
-    useEffect(() => {
-        if (pageName !== "Profile") return;
-        console.log("Page: ", page);
-        if (page === 1) return;
-
-        fetchPosts(page)
-        postsArrayRef.current = post;
-        return () => {
-            postsArrayRef.current = []
-            setNewPost([]);
-        }
-        // console.log("fired", pageName)
-    }, [page, pageName]);
-
-    useEffect(() => {
-        let scrollTimeOut = false;
-        if (!loadingPosts && postScroll.current) {
-            // console.log("Mounted", postScroll.current)
-
-            postScroll.current.onscroll = function handleScroll() {
-                if (scrollTimeOut) return;
-
-                scrollTimeOut = setTimeout(() => {
-                    // console.log("Scrolled", window.innerHeight, postScroll.current.scrollTop, postScroll.current.scrollHeight);
-                    if (window.innerHeight + postScroll.current.scrollTop >= postScroll.current.scrollHeight / 2) {
-                        // console.log("fired 300px");
-                        console.log("Page: ", page);
-                        console.log("hasMore: ", hasMore);
-                        if (hasMore) {
-                            setPage(prev => prev + 1);
-
-                        }
-                    }
-                    scrollTimeOut = false;
-
-                }, 300);
-            }
-
-        }
-        return () => {
-            clearTimeout(scrollTimeOut);
-        }
-
-    }, [loadingPosts, page])
-    useEffect(() => {
-        if (closeModal) {
-            setTabSelectedForFollow(null);
-            setShowFriends(null);
-            setCloseModal(null);
-            setOpenBlockList(false);
-            setShareOptions(false);
-        }
-    }, [closeModal])
-    useEffect(() => {
-        // console.log(savePost)
-        if (savePost) {
-            getSavedPosts();
-            // setSelectedTab("Posts");
-        }
-    }, [savePost])
-
-    // useEffect(()=>{
-
-    //     if (selectedTab === "Posts") {
-    //         setSavePost(false);
-    //         fetchPosts(1);
-    //     }
-    // },[selectedTab])
-
-    async function getSavedPosts() {
-        try {
-            setLoadingPosts(true);
-            const response = await axiosInstance.get(`/post/getSavedPosts`);
-            setSavePostList(response.data.mySavedPosts);
-            setLoadingPosts(false);
-            // console.log("response.data: ", response.data.mySavedPosts)
-        } catch (error) {
-            console.log("error: ", error)
-        }
+        return;
+      }
+      if (page > 1 && responseForPosts.data.posts.length === 0) {
+        setHasMore(false);
+        setNoPost("No more posts.");
+        setLoadingPosts(false);
+        return;
+      }
+      if (responseForPosts.data.posts && responseForPosts.data.posts.length > 0) {
+        setLikedData(responseForPosts.data.likedData);
+        setNewPost([...postsArrayRef.current, ...responseForPosts.data.posts]);
+        setLoadingPosts(false);
+        return;
+      } else {
+        setHasMore(false);
+        setLoadingPosts(false);
+      }
+    } catch (error) {
+      setLoadingPosts(false);
+      setNotify("Failed to get posts, please try again later");
+      notifyTimer.current = setTimeout(() => {
+        setNotify(null);
+      }, 5 * 1000);
     }
+  };
 
-    // Outside clicks handlers 
-
-    useEffect(() => {
-        function handleClickOutside(e) {
-            if (postBoxRef.current && !postBoxRef.current.contains(e.target)) {
-                setOpenPost(false);
-                setPostDetailsObj(null);
-            }
-            if (shareOptionsRef.current && !shareOptionsRef.current.contains(e.target)) {
-                setShareOptions(false);
-            }
-            if (confirmDeleteRef.current && !confirmDeleteRef.current.contains(e.target)) {
-                setConfirmDelete(false);
-            }
-            if (followListsRef.current && !followListsRef.current.contains(e.target)) {
-                // setSelectedTab("Posts");
-                setTabSelectedForFollow(null);
-            }
-            if (friendListsRef.current && !friendListsRef.current.contains(e.target)) {
-                // setSelectedTab("Posts");
-                setShowFriends(null);
-            }
-            if (reportRef.current && !reportRef.current.contains(e.target)) {
-                setReport(null);
-            }
-            if (blockListsRef.current && !blockListsRef.current.contains(e.target)) {
-                setOpenBlockList(false);
-            }
-
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-            setOpenSearch(false)
-            setSavePost(false);
-            postsArrayRef.current = [];
-        }
-    }, [])
-
-    // Topbar rightside profile dropdown click handler 
-    useEffect(() => {
-        function handleClickOutside(e) {
-            if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target) && !topBarRightProfilePicRefState.contains(e.target)) {
-                setOpenProfileDropdown(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        }
-    }, [topBarRightProfilePicRefState]);
-
-    function openPostBox() {
-        setOpenPost(true);
+  // getting logged in user details
+  useEffect(() => {
+    async function getLoggedInUser() {
+      const response = await axiosInstance.get(`/user/getLoggedInuser`);
+      setLoggedInUser(response.data.user);
     }
-    function handlePostSubmit() {
+    if (!loggedInUser) {
+      getLoggedInUser();
+    }
+    setCommentDetails(null);
+    function resize() {
+      const width = window.innerWidth;
+      setWindowWidth(width);
+    }
+    window.addEventListener("resize", resize);
+    return () => {
+      window.removeEventListener("resize", resize);
+      setNotifyClicked(null);
+      if (notifyTimer.current) {
+        clearTimeout(notifyTimer.current);
+      }
+    };
+  }, []);
+  // For live unread incoming message count on TopBar
+  useEffect(() => {
+    socketData();
+    function socketData() {
+      if (!loggedInUser) return;
+      if (!socketHolder) {
+        connectSocket();
+        return;
+      }
+    }
+    fetchTotalUnreadMessages();
+    const socket = socketHolder;
+    const handleMessage = async (e) => {
+      const data = JSON.parse(e.data);
+      if (data.type === "text" || data.type === "file" || data.type === "audio" || data.type === "video" || data.type === "image") {
+        if (data.payload.receiverId === loggedInUser._id && data.payload.status === "sent") {
+          increaseTotalUnreadMessages();
+        }
+      }
+      if (data.type === "notification") {
+        addNotification(data.payload);
+        if (
+          data.payload.type === "friendRequestAccepted" ||
+          data.payload.type === "newfriendRequest" ||
+          data.payload.type === "removeFriend" ||
+          data.payload.type === "cancelfriendRequest"
+        ) {
+          setWSFriendRequest(true);
+        }
+        if (data.payload.type === "blockFriend") {
+          response();
+        }
+      }
+      if (data.type === "statusUpdate") {
+        if (data.payload.status === false) {
+          const filteredArr = onlineUsers.filter((user) => user.userId !== data.payload.userId);
+          setOnlineUsers(filteredArr);
+        }
+        if (data.payload.status === true) {
+          setOnlineUsers([...onlineUsers, data.payload]);
+        }
+      }
+      if (data.type === "online_friends") {
+        setOnlineFriends(data.payload.onlineFriends);
+      }
+    };
+    if (socket) {
+      socket.onmessage = handleMessage;
+    }
+    return () => {
+      if (socket) {
+        socket.onmessage = null;
+      }
+    };
+  }, [socketHolder, connectSocket, loggedInUser, onlineUsers]);
+  useEffect(() => {
+    const handleResize = () => {
+      setInnerHeight(window.innerHeight);
+    };
+    document.addEventListener("resize", handleResize);
+    return () => document.removeEventListener("resize", handleResize);
+  }, []);
+  useEffect(() => {
+    if (!userId) return;
+    if (!loggedInUser) return;
+    setPageName("Profile");
+    setSelected("Posts");
+    response();
+    return () => {
+      setPageName("");
+      setUser(null);
+      setTabSelectedForFollow(null);
+      setShowFriends(null);
+      setOpenBlockList(false);
+      setNewPost([]);
+      postsArrayRef.current = [];
+      setNotify(null);
+      setBlock(null);
+      setOpenHideUserList(null);
+      setNotifyClicked(null);
+    };
+  }, [loggedInUser, userId]);
+  useEffect(() => {
+    return () => {
+      setSavePost(false);
+    };
+  }, [userId]);
+  useEffect(() => {
+    if (pageName !== "Profile") return;
+    if (!user) return;
+    if (block) return;
+    fetchPosts(page);
+  }, [page, pageName, user, block]);
+
+  useEffect(() => {
+    let scrollTimeOut = null;
+    function handleScroll() {
+      if (scrollTimeOut) return;
+      scrollTimeOut = setTimeout(() => {
+        if (window.innerHeight + postScroll.current.scrollTop >= postScroll.current.scrollHeight / 2) {
+          setPage((prev) => prev + 1);
+        }
+        scrollTimeOut = null;
+      }, 300);
+    }
+    if (postScroll.current && hasMore && !loadingPosts) {
+      postScroll.current.onscroll = handleScroll;
+    }
+    return () => {
+      clearTimeout(scrollTimeOut);
+      if (postScroll.current) {
+        postScroll.current.onscroll = null;
+      }
+    };
+  }, [loadingPosts, page, hasMore]);
+  useEffect(() => {
+    if (closeModal) {
+      setTabSelectedForFollow(null);
+      setShowFriends(null);
+      setCloseModal(null);
+      setOpenBlockList(false);
+      setShareOptions(false);
+      setOpenHideUserList(null);
+    }
+  }, [closeModal]);
+  useEffect(() => {
+    if (savePost) {
+      getSavedPosts();
+    }
+  }, [savePost]);
+
+  async function getSavedPosts() {
+    try {
+      setLoadingPosts(true);
+      const response = await axiosInstance.get(`/post/getSavedPosts`);
+      setSavePostList(response.data.mySavedPosts);
+      setHasMore(false);
+      setLoadingPosts(false);
+    } catch (error) {
+      setLoadingPosts(false);
+    }
+  }
+
+  // Outside clicks handlers
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (postBoxRef.current && !postBoxRef.current.contains(e.target)) {
         setOpenPost(false);
+        setPostDetailsObj(null);
+        setOpenPoll(null);
+      }
+      if (shareOptionsRef.current && !shareOptionsRef.current.contains(e.target)) {
+        setShareOptions(false);
+      }
+      if (confirmDeleteRef.current && !confirmDeleteRef.current.contains(e.target)) {
+        setConfirmDelete(false);
+      }
+      if (followListsRef.current && !followListsRef.current.contains(e.target)) {
+        setTabSelectedForFollow(null);
+      }
+      if (friendListsRef.current && !friendListsRef.current.contains(e.target)) {
+        setShowFriends(null);
+      }
+      if (reportRef.current && !reportRef.current.contains(e.target)) {
+        setReport(null);
+      }
+      if (blockListsRef.current && !blockListsRef.current.contains(e.target)) {
+        setOpenBlockList(false);
+      }
+      if (leftBarSearchRef.current && !leftBarSearchRef.current.contains(e.target)) {
+        setOpenSearch(false);
+      }
+      if (showProfilePicFullRef.current && !showProfilePicFullRef.current.contains(e.target)) {
+        setShowProfilePicFull(null);
+      }
+      if (showBannerPicFullRef.current && !showBannerPicFullRef.current.contains(e.target)) {
+        setShowBannerPicFull(null);
+      }
+      if (hideUserRef.current && !hideUserRef.current.contains(e.target)) {
+        setOpenHideUserList(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      setOpenSearch(false);
+      setSavePost(false);
+      postsArrayRef.current = [];
+    };
+  }, []);
+
+  // Topbar rightside profile dropdown click handler
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target) && !topBarRightProfilePicRefState.contains(e.target)) {
+        setOpenProfileDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [topBarRightProfilePicRefState]);
+
+  function openPostBox() {
+    setOpenPost(true);
+  }
+  function handlePostSubmit() {
+    setOpenPost(false);
+  }
+
+  // need work here
+  function handleShareClick(buttonName, url) {
+    if (buttonName === "CopyLink") {
+      navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard");
+      return;
+    }
+    if (buttonName === "Facebook") {
+      window.open(`https://www.facebook.com/sharer/sharer.php?text=${url}`, "_blank");
+      return;
+    }
+    if (buttonName === "Twitter") {
+      window.open(`https://twitter.com/intent/tweet?url=${url}`, "_blank");
+      return;
+    }
+    if (buttonName === "Whatsapp") {
+      window.open(`https://api.whatsapp.com/send?text=${window.location.href}`, "_blank");
+      return;
+    }
+    if (buttonName === "Gmail") {
+      window.open(`mailto:?subject=Check out this link&body=${window.location.href}`, "_blank");
+      return;
+    }
+  }
+  async function handleDeletePost() {
+    try {
+      if (notifyTimer.current) {
+        clearTimeout(notifyTimer.current);
+        setNotify(null);
+      }
+      const response = await axiosInstance.delete(`/post/${deletePostObj.postId}/${deletePostObj.currentUserId}/deletePost`);
+      if (response.data.message === "Post deleted successfully") {
+        const deletedNewPosts = post.filter((e) => e._id !== deletePostObj.postId);
+        setNewPost(deletedNewPosts);
+        setDeletePostObj(null);
+        setNotify("Post deleted successfully");
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+      }
+    } catch (error) {
+      setNotify("Failed to delete post, please try again later");
+      notifyTimer.current = setTimeout(() => {
+        setNotify(null);
+      }, 5 * 1000);
+    }
+    setConfirmDelete(false);
+  }
+
+  async function unblockUser(id, name) {
+    if (notifyTimer.current) {
+      clearTimeout(notifyTimer.current);
+      setNotify(null);
+    }
+    try {
+      const response = await axiosInstance.put(`/user/${id}/unblockUser/`);
+      if (response.data.message === "Unblocked") {
+        setBlock(null);
+        setNotify(`You have unblocked ${name.split(" ")[0]}'s profile`);
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+      }
+      if (response.data.message === "Could not unblock, please try again later") {
+        setNotify(response.data.message);
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+      }
+    } catch (error) {
+      setNotify("Failed to unblock, please try again later");
+      notifyTimer.current = setTimeout(() => {
+        setNotify(null);
+      }, 5 * 1000);
+    }
+  }
+
+  async function removeFriend() {
+    if (notifyTimer.current) {
+      clearTimeout(notifyTimer.current);
+      setNotify(null);
+    }
+    try {
+      const response = await axiosInstance.delete(`/user/${confirmRemoveFriend.userId}/removeFriend`);
+      if (response.data.message === `Removed friend`) {
+        setConfirmRemoveFriend(null);
+        setNotify(`Removed ${confirmRemoveFriend.name} from your friendlist`);
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+        if (socketHolder && socketHolder.readyState === WebSocket.OPEN) {
+          socketHolder.send(
+            JSON.stringify({
+              type: "removeFriend",
+              payload: {
+                recipientId: userId,
+                senderId: loggedInUser._id,
+                senderName: loggedInUser.name,
+                senderProfilePic: loggedInUser.profilePic,
+              },
+            })
+          );
+        }
+      }
+    } catch (error) {
+      setNotify("Failed to remove friend, please try again later");
+      notifyTimer.current = setTimeout(() => {
+        setNotify(null);
+      }, 5 * 1000);
+    }
+  }
+
+  async function logout() {
+    if (notifyTimer.current) {
+      clearTimeout(notifyTimer.current);
+      setNotify(null);
+    }
+    setClickedLogOut(null);
+    setLogOut(true);
+    try {
+      const response = await axiosInstance.post("/auth/logout");
+      if (response.data.message === "Logged out successfully") {
+        setIsLoggedOut(true);
+        notifyTimer.current = setTimeout(() => {
+          setLogOut(null);
+          navigate("/login");
+        }, 1000);
+      } else {
+        throw Error;
+      }
+    } catch (error) {
+      setLogOut(null);
+      setNotify("Failed to logout, please try again");
+      notifyTimer.current = setTimeout(() => {
+        setNotify(null);
+      }, 5 * 1000);
+    }
+  }
+
+  async function hideAllPosts() {
+    if (notifyTimer.current) {
+      clearTimeout(notifyTimer.current);
+      setNotify(null);
+    }
+    setHideAllPostUser(null);
+    try {
+      const response = await axiosInstance.post(`/post/${hideAllPostUser.userId}/hideAllPosts`);
+      if (response.data.message === "User hidden") {
+        if (deleteSoundRef.current) {
+          deleteSoundRef.current.play();
+        }
+        setNotify(`You will not see any posts from ${hideAllPostUser.username}`);
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+      }
+    } catch (error) {
+      if (error.response.data.message === "User already hidden") {
+        setNotify(`You will not see any posts from ${hideAllPostUser.username}`);
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+      } else {
+        setNotify(`Failed to hide user, please try again later.`);
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+      }
+    }
+  }
+  async function blockUser() {
+    if (notifyTimer.current) {
+      clearTimeout(notifyTimer.current);
+      setNotify(null);
     }
 
-
-    // need work here 
-    function handleShareClick(buttonName, url) {
-        if (buttonName === "CopyLink") {
-            navigator.clipboard.writeText(url);
-            alert("Link copied to clipboard");
-            return;
+    try {
+      const response = await axiosInstance.post(`/user/${profileBlock.userId}/blockUser`);
+      if (response.data.message === "User blocked") {
+        if (deleteSoundRef.current) {
+          deleteSoundRef.current.play();
         }
-        if (buttonName === "Facebook") {
-            window.open(`https://www.facebook.com/sharer/sharer.php?text=${url}`, '_blank');
-            return;
+        setBlock({ userId: loggedInUser._id });
+        postScroll.current.scrollTop = 0;
+        setBlockedUserPosts([...blockedUserPosts, profileBlock.userId]);
+        setProfileBlock(null);
+        setNotify(`You have blocked ${profileBlock.username}'s profile`);
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+        if (socketHolder && socketHolder.readyState === WebSocket.OPEN) {
+          socketHolder.send(
+            JSON.stringify({
+              type: "blockFriend",
+              payload: {
+                recipientId: profileBlock.userId,
+                senderId: loggedInUser._id,
+                senderName: loggedInUser.name,
+                senderProfilePic: loggedInUser.profilePic,
+              },
+            })
+          );
         }
-        if (buttonName === "Twitter") {
-            window.open(`https://twitter.com/intent/tweet?url=${url}`, "_blank");
-            return;
-        }
-        if (buttonName === "Whatsapp") {
-            window.open(`https://api.whatsapp.com/send?text=${window.location.href}`, "_blank");
-            return;
-        }
-        if (buttonName === "Gmail") {
-            window.open(`mailto:?subject=Check out this link&body=${window.location.href}`, "_blank");
-            return;
-        }
+      } else {
+        throw Error;
+      }
+    } catch (error) {
+      if (error.response.data.message === "You already blocked this user") {
+        setProfileBlock(null);
+        setNotify(`You have already blocked ${profileBlock.username}'s profile`);
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+      } else {
+        setNotify(`Failed to block user, please try again later.`);
+        notifyTimer.current = setTimeout(() => {
+          setNotify(null);
+        }, 5 * 1000);
+      }
     }
-    // console.log(commentDetails)
-    async function handleDeletePost() {
-        console.log("deletePostObj: ", deletePostObj)
-        try {
-            if (notifyTimer.current) {
-                clearTimeout(notifyTimer.current);
-                setNotify(null);
-            }
-            const response = await axiosInstance.delete(`/post/${deletePostObj.postId}/${deletePostObj.currentUserId}/deletePost`);
-            if (response.data.message === "Post deleted successfully") {
-                // setRemovePost(deletePostObj.postId);
-                const deletedNewPosts = post.filter((e) => e._id !== deletePostObj.postId)
-                console.log("deletePostObj.postId: ", deletePostObj.postId)
-                console.log("deletedNewPosts: ", deletedNewPosts)
-                setNewPost(deletedNewPosts);
+  }
 
-                // deletePostObj.ref.current.remove();
-                setDeletePostObj(null);
-                setNotify("Post deleted successfully");
-                notifyTimer.current = setTimeout(() => {
-                    setNotify(null)
-                }, 5 * 1000)
-                // alert("Post deleted successfully");
-            }
-        } catch (error) {
-            console.log(error)
-            setNotify("Something went wrong, please try again later");
-            notifyTimer.current = setTimeout(() => {
-                setNotify(null)
-            }, 5 * 1000)
-        }
-        setConfirmDelete(false)
-    }
-
-    async function unblockUser(id, name) {
-        if (notifyTimer.current) {
-            clearTimeout(notifyTimer.current);
-            setNotify(null);
-        }
-        try {
-            const response = await axiosInstance.put(`/user/${id}/unblockUser/`);
-            if (response.data.message === "Unblocked") {
-                setBlock(false);
-                setNotify(`You have unblocked ${name.split(" ")[0]}'s profile`);
-                notifyTimer.current = setTimeout(() => {
-                    setNotify(null);
-                }, 5 * 1000)
-            }
-            if (response.data.message === "Could not unblock, please try again later") {
-                setNotify(response.data.message);
-                notifyTimer.current = setTimeout(() => {
-                    setNotify(null);
-                }, 5 * 1000)
-            }
-            // console.log(response.data);
-        } catch (error) {
-            console.log(error);
-            setNotify("Something went wrong, please try again later");
-            notifyTimer.current = setTimeout(() => {
-                setNotify(null);
-            }, 5 * 1000)
-
-        }
-    }
-
-    // console.log("user: ", user)
-
-    if (loading || !loggedInUser || !user) {
-        return <div className='h-screen flex justify-center items-center'><p className='spinOnButton h-[30px] w-[30px]'></p></div>
-    }
-
+  if (loading || !loggedInUser || !user) {
     return (
-        <>
-            {report && <ReportBox ref={reportRef} />}
-            {confirmDelete && <dialog className='fixed inset-0 z-50 h-[100%] w-[100%] flex justify-center items-center bg-black bg-opacity-60'>
-                <div ref={confirmDeleteRef} className='w-[500px] h-[215px] bg-white rounded-xl p-5'>
-                    <h1 className='text-center text-2xl font-semibold border-b-2 pb-4 border-zinc-300 mb-5 text-black'>Are you sure?</h1>
-                    <p className='text-black'>If you delete this post, it cannot be recovered. Are you sure you want to delete this post?</p>
-                    <div className='flex mt-6 justify-end'>
-                        <button onClick={() => setConfirmDelete(false)} className=' font-semibold  bg-[#6A0DAD] px-6 py-[6px] pb-[8px] rounded-md text-white flex justify-center items-center'>Cancel</button>
-                        <button onClick={() => handleDeletePost()} className=' font-semibold  ml-6 bg-[#6A0DAD] px-6 py-[6px] pb-[8px] rounded-md text-white flex justify-center items-center'>Delete</button>
-                    </div>
+      <div className="h-screen flex justify-center items-center">
+        <p className="spinOnButton h-[30px] w-[30px]"></p>
+      </div>
+    );
+  }
 
-                </div>
-            </dialog>}
-            {commentDetails && <CommentBox {...commentDetails} />}
+  return (
+    <>
+      {report && <ReportBox pageName="Profile" width={windowWidth} ref={reportRef} />}
+      {confirmDelete && <Confirmation width={windowWidth} cancel={setConfirmDelete} proceed={handleDeletePost} ConfirmText="Are you sure you want to delete this post?" />}
+      {confirmRemoveFriend && (
+        <Confirmation
+          width={windowWidth}
+          cancel={setConfirmRemoveFriend}
+          proceed={removeFriend}
+          ConfirmText={`Are you sure you want to remove ${confirmRemoveFriend.name} from your friend list?`}
+        />
+      )}
+      {clickedLogOut && (
+        <Confirmation width={windowWidth} cancel={setClickedLogOut} proceed={logout} ConfirmText={`${loggedInUser.name.split(" ")[0]}, are you sure you want to log out?`} />
+      )}
+      {hideAllPostUser && (
+        <Confirmation
+          width={windowWidth}
+          cancel={setHideAllPostUser}
+          proceed={hideAllPosts}
+          ConfirmText={`Are you sure you want to hide all posts from ${hideAllPostUser.username}?`}
+        />
+      )}
+      {profileBlock && (
+        <Confirmation width={windowWidth} cancel={setProfileBlock} proceed={blockUser} ConfirmText={`Are you sure you want to block ${profileBlock.username}'s profile?`} />
+      )}
+      {commentDetails && <CommentBox page="Profile" width={windowWidth} {...commentDetails} />}
+      <audio ref={postUploadedSoundRef} preload="auto" className="hidden" src={post_uploaded} />
+      <audio src={delete_notification} preload="auto" ref={deleteSoundRef} className="hidden" />
 
-            {tabSelectedForFollow === "Followers" && <FollowersList ref={followListsRef} tabName={"Followers"} currentUserId={loggedInUser._id} user_name={user.name} userId={userId} />}
-            {tabSelectedForFollow === "Following" && <FollowersList ref={followListsRef} tabName={"Following"} currentUserId={loggedInUser._id} user_name={user.name} userId={userId} />}
-            {showFriends === "Friends" && <FriendsList ref={friendListsRef} currentUserId={loggedInUser._id} />}
-            {openBlockList && <BlockList ref={blockListsRef} currentUserId={loggedInUser._id} />}
-            {shareOptions && <ShareModal ref={shareOptionsRef} />}
-            {logOut && <Logout />}
-
-            <div className='parent relative flex flex-col w-full bg-[#E9E9E9]'>
-                {notify && <div className='absolute giveShadow left-6 bottom-10 z-50 bg-zinc-900 px-5 py-3 text-white rounded-lg'>
-                    {notify} <button className='cursor-pointer hover:bg-zinc-700 transition duration-200 border-0 px-2 py-1 ml-2 bg-zinc-800 rounded-md font-semibold text-[15px]' onClick={() => window.location.reload()}>Reload</button>
-                </div>}
-                <div>
-                    <Topbar />
-                    {openSearch && <SearchBox page={"Profile"} ref={leftBarSearchRef} />}
-                </div>
-                {/* <div className='flex justify-center w-full h-full border-4 border-red-500'> */}
-
-
-                <div className="mainsection relative ">
-                    {openProfileDropdown && <TopbarRightDropdown pageName={"Profile"} ref={profileDropdownRef} />}
-
-                    <Leftbar />
-                    {selectedTab === "Photos" && <Photos />
-                    }
-                    {selectedTab !== "Photos" &&
-                        <div ref={postScroll} className="postContents ">
-                            <div className="middleBar relative">
-                                {block && <dialog className='absolute inset-0 w-[100%] h-[100%] z-50 flex justify-center bg-white bg-opacity-60'>
-                                    <div className='flex items-center' style={{ height: `${innerHeight}px` }} >
-                                        <div className='w-[400px] h-[200px] bg-white blockListShadow rounded-mdcd  flex flex-col justify-center items-center'>
-                                            <div className='text-2xl mb-2 font-bold'>
-                                                Blocked user
-                                            </div>
-                                            <div className='mb-2'>
-                                                {block.userId === loggedInUser._id && `You have blocked ${user.name.split(" ")[0]}'s profile`}
-                                                {block.userId !== loggedInUser._id && `${user.name.split(" ")[0]} has blocked you, you can not see this profile.`}
-                                            </div>
-                                            {block.userId === loggedInUser._id && <button onClick={() => unblockUser(user._id, user.name)} className='px-6 py-2 ml-0 rounded-lg bg-zinc-500 transition duration-200 hover:bg-[#6A0DAD] text-white'>Unblock</button>}
-                                        </div>
-                                    </div>
-                                </dialog>}
-                                <div className='profileimgages bg-white rounded-lg'>
-                                    {/* {console.log("user: ", user)} */}
-                                    {/* user ? user.bannerPic : defaultBannerPic */}
-                                    <BannerImg loggedInUser={loggedInUser} />
-                                    <ProfileImg loggedInUser={loggedInUser} />
-                                </div>
-                                <div className='flex flex-col items-center pb-[150px]'>
-                                    {!savePost && <>
-                                        {selectedTab === "Posts" && post.length > 0 && post.map((e, i) => {
-                                            const showTime = postTimeLogic(e);
-                                            return <Post key={i} userId={e.userId} currentUserId={loggedInUser._id} id={e._id} logoImg={e.creatorProfilePic} username={e.postCreator} likedData={likedData} time={showTime} textContent={e.postTextContent} postImage={e.image} postVideo={e.video} audience={e.audience} likes={e.likes} comments={e.commentCount} shares={e.shares} views={e.views} />
-                                        })}
-                                        {loadingPosts && <div className="text-zinc-500 mt-12"><p className='spinOnButton h-[30px] w-[30px]'></p></div>}
-                                        {/* {!loadingPosts && !hasMore && <div className="text-zinc-500 mt-6">No more posts.</div>} */}
-                                        {/* {post.length === 0 && !showLoading && <div className="text-zinc-500 mt-4">No posts yet.</div>} */}
-                                        {/* {console.log("hasMore", hasMore)} */}
-                                        {selectedTab === "Posts" && !hasMore && !loadingPosts && <div className="text-zinc-500 mt-8">{noPost}</div>}
-                                    </>}
-                                    {savePost && !loadingPosts && savePostList && savePostList.length > 0 &&
-                                        <>
-                                        
-                                            <div className='text-zinc-600 text-lg mt-6'>Your Saved posts</div>
-                                            {savePostList.map((e, i) => {
-                                                const showTime = postTimeLogic(e.postId);
-                                                return <Post key={i} userId={e.postId.userId} savedPosts={true} currentUserId={loggedInUser._id} id={e.postId._id} likedData={likedData} page={"Profile"} logoImg={e.postId.creatorProfilePic} username={e.postId.postCreator} time={showTime} textContent={e.postId.postTextContent} postImage={e.postId.image} postVideo={e.postId.video} audience={e.postId.audience} likes={e.postId.likes} comments={e.postId.commentCount} shares={e.postId.shares} views={e.postId.views} />
-                                            })}
-                                        </>}
-                                    {savePost && loadingPosts && <div className="text-zinc-500 mt-12"><p className='spinOnButton h-[30px] w-[30px]'></p></div>}
-                                    {savePost && !loadingPosts && savePostList && savePostList.length === 0 && <div className='text-zinc-500 mt-[60px]'>No saved posts</div>}
-                                    {selectedTab === "About" && <About user={user} />}
-                                </div>
-                            </div>
-                        </div>
-                    }
-                    {openPost && <PostBox onSubmit={handlePostSubmit} page="Profile" pageNo={page} ref={postBoxRef} />}
-                    {/* <div className="rightBar">
-
-                </div> */}
-                </div>
-                {/* </div> */}
+      {showProfilePicFull && (
+        <dialog className={`fixed inset-0 z-50 h-[100%] w-[100%] flex justify-center items-center bg-black ${windowWidth > 540 ? "bg-opacity-60" : "bg-opacity-100"}`}>
+          <div className="relative flex justify-center items-center h-full w-full">
+            <FontAwesomeIcon
+              icon={windowWidth > 540 ? faXmark : faArrowLeft}
+              onClick={() => setShowProfilePicFull(null)}
+              className={`absolute p-2 hover:bg-zinc-600 text-white ${
+                windowWidth > 540 ? "top-2 right-1 bg-zinc-700 w-[25px] h-[25px]" : "top-2 left-2 w-[22px] h-[22px]"
+              } transition duration-300 rounded-full cursor-pointer`}
+            />
+            <img ref={showProfilePicFullRef} src={showProfilePicFull} alt="" className={`rounded-xl object-cover ${windowWidth > 540 ? "w-[400px] h-[400px]" : "max-h-[60%]"}`} />
+          </div>
+        </dialog>
+      )}
+      {expandImageForPost && (
+        <dialog className={`fixed inset-0 z-50 h-[100%] w-[100%] flex justify-center items-center bg-black ${windowWidth > 540 ? "bg-opacity-60" : "bg-opacity-100"}`}>
+          <div className="relative flex justify-center items-center h-full w-full">
+            <FontAwesomeIcon
+              icon={windowWidth > 540 ? faXmark : faArrowLeft}
+              onClick={() => setExpandImageForPost(null)}
+              className={`absolute p-2 hover:bg-zinc-600 text-white ${
+                windowWidth > 540 ? "top-2 right-1 bg-zinc-700 w-[25px] h-[25px]" : "top-2 left-2 w-[22px] h-[22px]"
+              } transition duration-300 rounded-full cursor-pointer`}
+            />
+            <div ref={expandImageForPostRef}>
+              <Carousel images={expandImageForPost} />
             </div>
+          </div>
+        </dialog>
+      )}
 
-        </>
-    )
-}
+      {showBannerPicFull && (
+        <dialog className={`fixed inset-0 z-50 h-[100%] w-[100%] flex justify-center items-center bg-black ${windowWidth > 540 ? "bg-opacity-60" : "bg-opacity-100"}`}>
+          <div className="relative flex justify-center items-center h-full w-full">
+            <FontAwesomeIcon
+              icon={windowWidth > 540 ? faXmark : faArrowLeft}
+              onClick={() => setShowBannerPicFull(null)}
+              className={`absolute p-2 hover:bg-zinc-600 text-white ${
+                windowWidth > 540 ? "top-2 right-1 bg-zinc-700 w-[25px] h-[25px]" : "top-2 left-2 w-[22px] h-[22px]"
+              } transition duration-300 rounded-full cursor-pointer`}
+            />
+            <img ref={showBannerPicFullRef} src={showBannerPicFull} alt="" className={`rounded-xl ${windowWidth > 540 ? "w-[70%] max-h-[80%]" : "w-full max-h-[60%]"}`} />
+          </div>
+        </dialog>
+      )}
 
-export default ProfilePage
+      {tabSelectedForFollow === "Followers" && (
+        <FollowersList width={windowWidth} ref={followListsRef} tabName={"Followers"} currentUserId={loggedInUser._id} user_name={user.name} userId={userId} />
+      )}
+      {tabSelectedForFollow === "Following" && (
+        <FollowersList width={windowWidth} ref={followListsRef} tabName={"Following"} currentUserId={loggedInUser._id} user_name={user.name} userId={userId} />
+      )}
+      <AnimatePresence>
+        {changeWidth && (
+          <motion.dialog
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.7 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 h-[100%] w-[100%] flex justify-center items-center bg-black"
+          >
+            <VideoPlayer maxHeight="100vh" playing={changeWidth.videoPlaying} currentTimeVideo={changeWidth.currentTime} e={changeWidth.e} />
+          </motion.dialog>
+        )}
+      </AnimatePresence>
+
+      {showFriends === "Friends" && <FriendsList width={windowWidth} ref={friendListsRef} currentUserId={loggedInUser._id} />}
+      {openHideUserList && <HideUser ref={hideUserRef} width={windowWidth} currentUserId={loggedInUser._id} />}
+      {openBlockList && <BlockList width={windowWidth} ref={blockListsRef} currentUserId={loggedInUser._id} />}
+      {shareOptions && <ShareModal page="Profile" ref={shareOptionsRef} />}
+      {logOut && <Logout />}
+
+      <div className={`parent inter relative flex flex-col w-full ${windowWidth > 550 ? "bg-zinc-100 bg-opacity-60" : "bg-zinc-300"}`}>
+        {notify && windowWidth > 450 && <Notify page="Profile" reference={notifyTimer} width={windowWidth} notify={notify} />}
+        {notify && windowWidth <= 450 && (
+          <div className="absolute w-[100%] bottom-10 flex justify-center">
+            <Notify page="Profile" reference={notifyTimer} width={windowWidth} notify={notify} />
+          </div>
+        )}
+        <div>
+          <Topbar />
+          <AnimatePresence>{notifyClicked && <Notification width={windowWidth} />}</AnimatePresence>
+          <AnimatePresence>{openSearch && <SearchBox width={windowWidth} page={"Profile"} ref={leftBarSearchRef} />}</AnimatePresence>
+        </div>
+        <div className="mainsection relative ">
+          {/* <AnimatePresence>{notifyClicked && windowWidth > 550 && <Notification width={windowWidth} />}</AnimatePresence> */}
+          <AnimatePresence>{openProfileDropdown && <TopbarRightDropdown width={windowWidth} pageName={"Profile"} ref={profileDropdownRef} />}</AnimatePresence>
+          {windowWidth >= 1024 && <Leftbar width={windowWidth} />}
+
+          {/* {selected !== "Photos" && ( */}
+          <div ref={postScroll} className={`postContents overflow-y-scroll ${windowWidth > 768 ? "" : "scrollbar-none"} `}>
+            <div className={`middleBar  ${windowWidth >= 1280 && "mr-[70px]"} mr-0 relative`}>
+              {block && (
+                <dialog className="absolute inset-0 w-[100%] h-[100%] z-10 flex justify-center bg-[#E9E9E9] bg-opacity-100">
+                  <div className="flex mt-10" style={{ height: `${innerHeight}px` }}>
+                    <div className={`${windowWidth > 400 ? "w-[400px]" : "w-[100vw]"} h-[200px] bg-white rounded-mdcd  flex flex-col justify-center items-center`}>
+                      <div className="text-2xl mb-2 font-bold">Blocked user</div>
+                      <div className="mb-2">
+                        {block.userId === loggedInUser._id && `You have blocked ${user.name.split(" ")[0]}'s profile`}
+                        {block.userId !== loggedInUser._id && `${user.name.split(" ")[0]} has blocked you, you can not see this profile.`}
+                      </div>
+                      {block.userId === loggedInUser._id && (
+                        <button
+                          onClick={() => unblockUser(user._id, user.name)}
+                          className="px-6 py-[6px] ml-0 rounded-md bg-gradient-to-r from-slate-700 to-slate-900 transition duration-200 hover:opacity-90 text-white"
+                        >
+                          Unblock
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </dialog>
+              )}
+              <div className="profileimgages bg-white rounded-lg">
+                <BannerImg width={windowWidth} loggedInUser={loggedInUser} />
+                <ProfileImg width={windowWidth} loggedInUser={loggedInUser} />
+              </div>
+              {selected === "Posts" && !savePost && loggedInUser._id === user._id && <WritePost width={windowWidth} onClick={openPostBox} />}
+              <div className="flex flex-col items-center pb-[150px]">
+                {!savePost && selected === "Posts" && (
+                  <>
+                    {post.length > 0 &&
+                      post.map((e, i) => {
+                        const showTime = postTimeLogic(e);
+                        return (
+                          <Post
+                            key={i}
+                            userId={e.userId}
+                            width={windowWidth}
+                            page="Profile"
+                            currentUserId={loggedInUser._id}
+                            id={e._id}
+                            logoImg={e.creatorProfilePic}
+                            username={e.postCreator}
+                            likedData={likedData}
+                            time={showTime}
+                            textContent={e.postTextContent}
+                            postImage={e.image}
+                            postVideo={e.video}
+                            audience={e.audience}
+                            likes={e.likes}
+                            comments={e.commentCount}
+                            shares={e.sharesCount}
+                            views={e.views}
+                            type={e.type}
+                            question={e.question}
+                            option1={e.option1}
+                            option2={e.option2}
+                            totalVotes={e.totalVotes}
+                            votesOnOption1={e.votesOnOption1}
+                            votesOnOption2={e.votesOnOption2}
+                            voters={e.voters}
+                          />
+                        );
+                      })}
+                    {!hasMore && !loadingPosts && noPost && <div className="text-zinc-500 mt-8">{noPost}</div>}
+                    {loadingPosts && hasMore && <PostSkeleton width={windowWidth} />}
+                  </>
+                )}
+                {savePost && !loadingPosts && savePostList && savePostList.length > 0 && (
+                  <>
+                    <div className="text-zinc-600 border-b-2 border-zinc-300 text-md mt-2">Your Saved posts</div>
+                    {savePostList.map((e, i) => {
+                      const showTime = postTimeLogic(e.postId);
+                      return (
+                        <Post
+                          key={i}
+                          userId={e.postId.userId}
+                          width={windowWidth}
+                          page="Profile"
+                          savedPosts={true}
+                          currentUserId={loggedInUser._id}
+                          id={e.postId._id}
+                          likedData={likedData}
+                          logoImg={e.postId.creatorProfilePic}
+                          username={e.postId.postCreator}
+                          time={showTime || ""}
+                          textContent={e.postId.postTextContent}
+                          postImage={e.postId.image}
+                          postVideo={e.postId.video}
+                          audience={e.postId.audience}
+                          likes={e.postId.likes}
+                          comments={e.postId.commentCount}
+                          shares={e.postId.sharesCount}
+                          views={e.postId.views}
+                        />
+                      );
+                    })}
+                  </>
+                )}
+                {savePost && loadingPosts && <PostSkeleton width={windowWidth} />}
+                {savePost && !loadingPosts && savePostList && savePostList.length === 0 && <div className="text-zinc-500 mt-[40px]">No saved posts</div>}
+                {selected === "About" && <About width={windowWidth} user={user} />}
+                {selected === "Photos" && <Photos width={windowWidth} userId={userId} />}
+                {selected === "Videos" && <VideoProfilePage width={windowWidth} userId={userId} />}
+              </div>
+            </div>
+          </div>
+          {/* )} */}
+          {openPost && <PostBox width={windowWidth} onSubmit={handlePostSubmit} page="Profile" ref={postBoxRef} />}
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default ProfilePage;
